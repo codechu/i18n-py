@@ -1,9 +1,13 @@
 ```text
-   ┌──────────────────────────────────────────────────┐
-   │  c o d e c h u — i 1 8 n                         │
-   │   🌐  Hello   Merhaba   مرحبا   你好   שלום       │
-   │  ····translate · negotiate · pluralize · RTL···· │
-   └──────────────────────────────────────────────────┘
+━━━━━━━━━━━ c o d e c h u  ·  i 1 8 n ━━━━━━━━━━━
+
+   en   Hello, Ada!     1 file        5 files
+   tr   Merhaba Ada!    1 dosya       5 dosya
+   ar   مرحبا Ada!      1 ملف         5 ملفات
+   zh   你好, Ada!       1 个文件      5 个文件
+   pl   Cześć Ada!      1 plik        5 plików
+
+━━━ translate · negotiate · pluralize · RTL ━━━
 ```
 
 [![PyPI](https://img.shields.io/pypi/v/codechu-i18n.svg)](https://pypi.org/project/codechu-i18n/)
