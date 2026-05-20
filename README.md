@@ -16,126 +16,87 @@
 # codechu-i18n
 
 Locale negotiation (RFC 4647), CLDR-derived plural rules, RTL
-detection, ICU-style message formatting, and a lazy `Translator` that
-defers `.mo` loading until first use. Pure stdlib. Python 3.10+.
+detection, ICU-style message formatting, and a lazy `Translator`
+that defers `.mo` loading until first use. Pure stdlib — this
+library does not ship catalogs; that's the consuming app's job.
+
+## Install
 
 ```bash
 pip install codechu-i18n
 ```
 
-## What it gives you
+Python 3.10+. Zero third-party dependencies.
 
-- **`Translator`** — lazy `gettext` wrapper with `gettext`, `ngettext`,
-  `pgettext`, `npgettext`, and ICU-style `format("Hello {name}!", name=…)`.
-- **`negotiate_locale(requested, available)`** — RFC 4647 lookup match.
-- **`detect_locale(env)`** — `LC_ALL > LC_MESSAGES > LANG > LANGUAGE`,
-  caller passes the env dict (no implicit `os.environ`).
-- **`is_rtl(locale)`** — Arabic, Hebrew, Persian, Urdu, Pashto, …
-- **`plural_form(locale, n)`** — CLDR plural category index (handles
-  Slavic three-form, Polish, Arabic six-form, Welsh, French zero-as-one,
-  Asian no-plural).
-- **`lazy_gettext(msg)`** — module-level strings that resolve at render
-  time, not import time.
-
-## Quick examples
-
-### Translator
+## Quick example
 
 ```python
-from codechu_i18n import Translator
+from codechu_i18n import Translator, negotiate_locale, is_rtl, plural_form
 
-t = Translator("myapp", "locale", languages=["tr"], fallback="en")
+# Pick a locale from what the user wants vs what you have.
+locale = negotiate_locale(["fr", "tr"], ["tr-TR", "en-US", "de-DE"])
+# → "tr-TR"
 
-t.gettext("Hello")                            # "Merhaba"
-t.ngettext("{n} file", "{n} files", 3)        # "3 dosya"
-t.pgettext("menu", "Open")                    # context-disambiguated
-t.format("Hello {name}!", name="Ada")         # "Merhaba Ada!"
+t = Translator("myapp", "locale", languages=[locale], fallback="en")
+t.gettext("Hello")                             # "Merhaba"
+t.ngettext("{n} file", "{n} files", 3)         # "3 dosya"
+t.format("Hello {name}!", name="Ada")          # "Merhaba Ada!"
+
+is_rtl("ar")            # True   — Arabic, Hebrew, Persian, Urdu, …
+plural_form("pl", 5)    # 2 (many) — Polish three-form
+plural_form("tr", 5)    # 0       — Turkish has no plural distinction
 ```
 
-### Locale negotiation
+## What you get
 
-```python
-from codechu_i18n import negotiate_locale
-
-available = ["tr-TR", "en-US", "de-DE"]
-negotiate_locale(["fr", "tr"], available)        # "tr-TR"
-negotiate_locale(["zh-Hant-HK"], ["zh-Hant"])    # "zh-Hant"
-negotiate_locale(["xx"], available, fallback="en")  # "en"
-```
-
-### Detect from env
-
-```python
-import os
-from codechu_i18n import detect_locale
-
-detect_locale(dict(os.environ))   # "tr-TR" on a Turkish machine
-detect_locale({})                 # ""  (no implicit ambient read)
-```
-
-### RTL and plural rules
-
-```python
-from codechu_i18n import is_rtl, plural_form
-
-is_rtl("ar")          # True
-is_rtl("tr-TR")       # False
-
-plural_form("en", 1)  # 0 (one)
-plural_form("en", 2)  # 1 (other)
-plural_form("pl", 3)  # 1 (few)
-plural_form("pl", 5)  # 2 (many)
-plural_form("ar", 0)  # 0 (zero)
-plural_form("tr", 5)  # 0 (Turkish has no plural distinction)
-```
-
-### Lazy strings
-
-```python
-from codechu_i18n import lazy_gettext as _
-
-# Resolved every time str() is called — locale switches take effect.
-GREETING = _("Hello")
-print(str(GREETING))   # uses current installed translator
-```
-
-## Library policy
+- **`Translator`** — lazy `gettext` wrapper with `gettext`,
+  `ngettext`, `pgettext`, `npgettext`, and ICU-style
+  `format(template, **kwargs)`.
+- **`negotiate_locale(requested, available)`** — RFC 4647
+  best-match lookup with fallback.
+- **`detect_locale(env)`** — `LC_ALL > LC_MESSAGES > LANG > LANGUAGE`
+  cascade. The caller supplies the env dict (no implicit
+  `os.environ` read).
+- **`is_rtl(locale)`** — Arabic, Hebrew, Persian, Urdu, Pashto, and
+  the other right-to-left scripts.
+- **`plural_form(locale, n)`** — CLDR plural category index;
+  handles Slavic three-form, Polish, Arabic six-form, Welsh,
+  French zero-as-one, Asian no-plural.
+- **`lazy_gettext(msg)`** — module-level strings that resolve at
+  render time, so locale switches take effect without re-imports.
 
 This package is a thin layer over `gettext`. It does **not** ship
-`.po`/`.mo` catalogs — that is the consuming application's job. See the
-[Codechu standards on library i18n](https://github.com/codechu/codechu-org/blob/main/STANDARDS.md)
+`.po` / `.mo` catalogs — that's the consuming application's job.
+See the
+[Codechu library i18n policy](https://github.com/codechu/codechu-org/blob/main/STANDARDS.md)
 for the rationale.
 
-## Documentation
+## Read more
 
-- [API reference](docs/API.md) — every public symbol, signatures, edge cases
+- [API reference](docs/API.md) — every public symbol with full
+  signatures and edge-case tables.
+- [Changelog](CHANGELOG.md)
 
-## Codechu family
-
-Companion libraries from the Codechu Python ecosystem:
+## Family
 
 | Library | Purpose |
 |---------|---------|
-| [codechu-fmt](https://pypi.org/project/codechu-fmt/) | Human-readable formatting — sizes, durations, rates, percent |
-| [codechu-meter](https://pypi.org/project/codechu-meter/) | Timing primitives — Stopwatch, ETA, percentile, histogram |
-| [codechu-spark](https://pypi.org/project/codechu-spark/) | Unicode sparklines, mini bar charts, heatmaps |
-| [codechu-cli](https://pypi.org/project/codechu-cli/) | CLI primitives — colors, progress, spinners, prompts, table |
-| [codechu-events](https://pypi.org/project/codechu-events/) | Thread-safe multi-channel pub/sub bus with replay |
-| [codechu-xdg](https://pypi.org/project/codechu-xdg/) | XDG Base Directory helpers, vendor-namespaced |
-| [codechu-treeviz](https://pypi.org/project/codechu-treeviz/) | Tree visualization — treemap, sunburst, icicle, flame |
-| [codechu-fs](https://pypi.org/project/codechu-fs/) | Filesystem primitives — atomic write, XDG trash, safe walk |
-| [codechu-term](https://pypi.org/project/codechu-term/) | Terminal capability detection, alt buffer, raw mode |
-| [codechu-color](https://pypi.org/project/codechu-color/) | Color palettes, WCAG contrast, color-blind variants |
-| [codechu-treedata](https://pypi.org/project/codechu-treedata/) | N-ary tree data structures and algorithms |
-| [codechu-log](https://pypi.org/project/codechu-log/) | Structured logging — context, JSON, rotation, redaction |
-| [codechu-ipc](https://pypi.org/project/codechu-ipc/) | Local IPC — Unix socket, FIFO, JSON-line protocol |
+| [codechu-fmt](https://pypi.org/project/codechu-fmt/) | Human-readable sizes, durations, rates |
+| [codechu-cli](https://pypi.org/project/codechu-cli/) | CLI primitives — colors, progress, prompts |
 | [codechu-config](https://pypi.org/project/codechu-config/) | Schema-driven config — atomic save, migrations |
+| [codechu-log](https://pypi.org/project/codechu-log/) | Structured logging — context, JSON, rotation |
+| [codechu-color](https://pypi.org/project/codechu-color/) | Color palettes, WCAG contrast, color-blind variants |
+
+Full ecosystem: [github.com/codechu](https://github.com/codechu).
 
 ## Credits
 
-- Plural rules from CLDR (Unicode Common Locale Data Repository)
-- Locale negotiation per RFC 4647
-- Built on stdlib `gettext`
+- Plural rules from
+  [CLDR](https://cldr.unicode.org/) (Unicode Common Locale Data
+  Repository).
+- Locale negotiation per
+  [RFC 4647](https://www.rfc-editor.org/rfc/rfc4647).
+- Built on stdlib `gettext`.
 
 ## License
 
